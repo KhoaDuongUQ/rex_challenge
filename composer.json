@@ -10,6 +10,7 @@
         "laravel/framework": "^13.8",
         "laravel/tinker": "^3.0",
         "lorisleiva/laravel-actions": "^2.10",
+        "propaganistas/laravel-phone": "^6.0",
         "spatie/laravel-data": "^4.23",
         "spatie/laravel-typescript-transformer": "^3.2"
     },

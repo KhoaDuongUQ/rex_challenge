@@ -1,58 +1,157 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# rex_test
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel 13 + React 19 SPA for managing contacts. The full stack runs in Docker Compose; the frontend tooling (Vite/Node) runs on the host.
 
-## About Laravel
+## Tech stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### Backend
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **PHP 8.4** with **Laravel 13**
+- **MySQL 8.4** — separate `mysql` (dev, persisted) and `mysql_test` (tmpfs, fast) services
+- **Redis 7** for cache, sessions, and queues
+- **nginx 1.27** in front of PHP-FPM
+- **[lorisleiva/laravel-actions](https://laravelactions.com)** — single-purpose action classes are the canonical home for business logic
+- **[spatie/laravel-data](https://spatie.be/docs/laravel-data)** — typed DTOs at every boundary (HTTP, jobs, actions)
+- **[spatie/laravel-typescript-transformer](https://spatie.be/docs/typescript-transformer)** — emits TypeScript types from `Data` classes
+- **[propaganistas/laravel-phone](https://github.com/Propaganistas/Laravel-Phone)** — phone number validation/formatting (AU/NZ)
+- **[laravel/prompts](https://laravel.com/docs/prompts)** — interactive console UIs (used by `contacts:console`)
+- **[laravel/boost](https://github.com/laravel/boost)** — MCP server for AI agents
+- **[laravel/pail](https://github.com/laravel/pail)** — tail application logs
+- **[laravel/pint](https://laravel.com/docs/pint)** — PHP code formatter
+- **PHPUnit 12** for tests
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Frontend
 
-## Learning Laravel
+- **TypeScript** (strict mode) — all new files are `.ts` / `.tsx`
+- **React 19** with **react-router-dom 7**
+- **[@tanstack/react-query 5](https://tanstack.com/query)** — all server state
+- **Vite 8** + **@vitejs/plugin-react**
+- **Tailwind CSS 4** via `@tailwindcss/vite`
+- **ESLint 9** (flat config, typescript-eslint, react, react-hooks) + **Prettier 3** (aligned via `eslint-config-prettier`)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Project layout
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```
+app/
+├── Actions/              # business logic (one Action per use case)
+├── Contact/              # Contact domain module
+├── Data/                 # spatie/laravel-data DTOs (#[TypeScript] -> generated.d.ts)
+├── Http/
+├── Models/
+└── Providers/
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+resources/js/
+├── app.tsx               # entry; QueryClientProvider here
+├── Root.tsx              # top-level component
+├── pages/
+├── queries/              # one useFooQuery() hook per endpoint
+├── mutations/            # one useFooMutation() hook per endpoint
+├── lib/apiFetch.ts       # the only fetch wrapper
+└── types/generated.d.ts  # generated; do not edit
 
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+docker/                   # Dockerfile + nginx config
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## Prerequisites
 
-## Contributing
+- **Docker Desktop** (or any Docker engine with Compose v2)
+- **Node.js 20+** and **npm** on the host (frontend tooling runs locally, not in a container)
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+That's it — PHP, Composer, MySQL, and Redis are all containerised.
 
-## Code of Conduct
+## First-time setup
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+# 1. Copy environment file
+cp .env.example .env
 
-## Security Vulnerabilities
+# 2. Bring the stack up (builds the app image, starts mysql/redis/nginx)
+docker compose up -d --build
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+# 3. Install PHP dependencies
+docker compose exec app composer install
 
-## License
+# 4. Generate the application key
+docker compose exec app php artisan key:generate
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+# 5. Run migrations (and seeders if you want demo data)
+docker compose exec app php artisan migrate
+docker compose exec app php artisan db:seed   # optional
+
+# 6. Generate TypeScript types from spatie/laravel-data classes
+docker compose exec app php artisan typescript:transform
+
+# 7. Install frontend dependencies (on the host, not in Docker)
+npm install
+
+# 8. Start Vite (on the host)
+npm run dev
+```
+
+The app is served at **<http://localhost:8080>** (override with `APP_PORT` in `.env`).
+
+## Daily commands
+
+All PHP/Composer/Artisan commands run **inside the `app` container** — bare `php artisan` on the host fails because `DB_HOST=mysql` only resolves on the compose network.
+
+| Task                | Command                                                                     |
+| ------------------- | --------------------------------------------------------------------------- |
+| Start stack         | `docker compose up -d`                                                      |
+| Stop stack          | `docker compose down`                                                       |
+| Rebuild app image   | `docker compose up -d --build app` (only after `docker/**` changes)         |
+| Composer            | `docker compose exec app composer <cmd>`                                    |
+| Artisan             | `docker compose exec app php artisan <cmd>`                                 |
+| Tinker              | `docker compose exec app php artisan tinker`                                |
+| Tail logs           | `docker compose exec app php artisan pail`                                  |
+| TS type generation  | `docker compose exec app php artisan typescript:transform`                  |
+| Contacts CLI        | `docker compose exec app php artisan contacts:console`                      |
+| MySQL (dev)         | `docker compose exec mysql mysql -urex_test -psecret rex_test`              |
+| MySQL (test)        | `docker compose exec mysql_test mysql -urex_test -psecret rex_test_testing` |
+| Redis CLI           | `docker compose exec redis redis-cli`                                       |
+| App shell           | `docker compose exec app sh`                                                |
+| Vite dev server     | `npm run dev` (host)                                                        |
+| Production build    | `npm run build` (host)                                                      |
+
+## Testing
+
+Tests target the dedicated `mysql_test` service (tmpfs-backed, binlog disabled — fast and ephemeral). Configured via `<env>` blocks in `phpunit.xml`; do not change `DB_*` in `.env` for tests.
+
+```bash
+# Run the whole suite
+docker compose exec app php artisan test --compact
+
+# A single file
+docker compose exec app php artisan test --compact tests/Feature/ExampleTest.php
+
+# A single test by name
+docker compose exec app php artisan test --compact --filter=testCreatesContact
+```
+
+## Linting & formatting
+
+One command formats and lints both halves of the stack. It auto-fixes in place (Prettier `--write`, Pint `--dirty`), so it will mutate files.
+
+```bash
+npm run lint        # Prettier + ESLint (frontend), then Pint (backend, via docker exec)
+npm run lint:fe     # frontend only
+npm run lint:be     # backend only
+npm run typecheck   # tsc --noEmit (separate gate from lint)
+```
+
+Run **both `npm run lint` and `npm run typecheck`** before declaring any change done.
+
+## Ports
+
+| Service        | Host port (default)          | Override env var          |
+| -------------- | ---------------------------- | ------------------------- |
+| App (nginx)    | `8080`                       | `APP_PORT`                |
+| MySQL (dev)    | `3306`                       | `FORWARD_DB_PORT`         |
+| MySQL (test)   | `33306`                      | `FORWARD_DB_TEST_PORT`    |
+| Redis          | `6379`                       | `FORWARD_REDIS_PORT`      |
+
+## Troubleshooting
+
+- **"Unable to locate file in Vite manifest"** — run `npm run dev` (or `npm run build` for a one-off prod bundle).
+- **Frontend types out of sync with backend** — re-run `docker compose exec app php artisan typescript:transform`. Never hand-edit `resources/js/types/generated.d.ts`.
+- **`mysql_test` data disappeared** — that's intentional. It runs on tmpfs and resets on container restart.
+- **Permission errors on `storage/` or `bootstrap/cache/`** — `docker compose exec app chown -R www-data:www-data storage bootstrap/cache`.

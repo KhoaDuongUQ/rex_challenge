@@ -1,0 +1,26 @@
+# Dependencies & build artifacts
+node_modules/
+vendor/
+public/build/
+storage/
+bootstrap/cache/
+
+# Auto-managed by Laravel Boost / Claude — leave their formatting alone
+.claude/
+.mcp.json
+boost.json
+
+# Auto-managed by Composer — every `composer require` rewrites it
+composer.json
+
+# Generated TypeScript types — owned by typescript-transformer
+resources/js/types/generated.d.ts
+resources/js/types/typescript-transformer-manifest.json
+
+# Lockfiles
+package-lock.json
+composer.lock
+
+# PHP — Pint handles these
+**/*.php
+**/*.blade.php
