@@ -15,9 +15,8 @@ email: string | null,
 createdAt: string,
 updatedAt: string,
 };
-export type SearchContactsData = {
-q: string,
-field: string | null,
+export type GetContactsData = {
+search: string | null,
 };
 export type UpsertContactData = {
 id: number | null,

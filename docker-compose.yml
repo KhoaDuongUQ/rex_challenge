@@ -1,104 +1,104 @@
 services:
-  app:
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile
-    container_name: rex_test_app
-    restart: unless-stopped
-    working_dir: /var/www
-    volumes:
-      - ./:/var/www
-    networks:
-      - rex_test
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_started
+    app:
+        build:
+            context: .
+            dockerfile: docker/php/Dockerfile
+        container_name: rex_test_app
+        restart: unless-stopped
+        working_dir: /var/www
+        volumes:
+            - ./:/var/www
+        networks:
+            - rex_test
+        depends_on:
+            mysql:
+                condition: service_healthy
+            redis:
+                condition: service_started
 
-  nginx:
-    image: nginx:1.27-alpine
-    container_name: rex_test_nginx
-    restart: unless-stopped
-    ports:
-      - "${APP_PORT:-8080}:80"
-    volumes:
-      - ./:/var/www
-      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-    networks:
-      - rex_test
-    depends_on:
-      - app
+    nginx:
+        image: nginx:1.27-alpine
+        container_name: rex_test_nginx
+        restart: unless-stopped
+        ports:
+            - '${APP_PORT:-8080}:80'
+        volumes:
+            - ./:/var/www
+            - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+        networks:
+            - rex_test
+        depends_on:
+            - app
 
-  mysql:
-    image: mysql:8.4
-    container_name: rex_test_mysql
-    restart: unless-stopped
-    ports:
-      - "${FORWARD_DB_PORT:-3306}:3306"
-    environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-rex_test}
-      MYSQL_USER: ${DB_USERNAME:-rex_test}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
-      MYSQL_ALLOW_EMPTY_PASSWORD: "no"
-    volumes:
-      - rex_test_mysql:/var/lib/mysql
-    networks:
-      - rex_test
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASSWORD:-secret}"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
+    mysql:
+        image: mysql:8.4
+        container_name: rex_test_mysql
+        restart: unless-stopped
+        ports:
+            - '${FORWARD_DB_PORT:-3306}:3306'
+        environment:
+            MYSQL_DATABASE: ${DB_DATABASE:-rex_test}
+            MYSQL_USER: ${DB_USERNAME:-rex_test}
+            MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
+            MYSQL_ALLOW_EMPTY_PASSWORD: 'no'
+        volumes:
+            - rex_test_mysql:/var/lib/mysql
+        networks:
+            - rex_test
+        healthcheck:
+            test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-p${DB_PASSWORD:-secret}']
+            interval: 5s
+            timeout: 5s
+            retries: 20
 
-  mysql_test:
-    image: mysql:8.4
-    container_name: rex_test_mysql_test
-    restart: unless-stopped
-    ports:
-      - "${FORWARD_DB_TEST_PORT:-33306}:3306"
-    environment:
-      MYSQL_DATABASE: ${DB_TEST_DATABASE:-rex_test_testing}
-      MYSQL_USER: ${DB_TEST_USERNAME:-rex_test}
-      MYSQL_PASSWORD: ${DB_TEST_PASSWORD:-secret}
-      MYSQL_ROOT_PASSWORD: ${DB_TEST_PASSWORD:-secret}
-      MYSQL_ALLOW_EMPTY_PASSWORD: "no"
-    command:
-      - --skip-log-bin
-      - --innodb-flush-log-at-trx-commit=0
-      - --innodb-doublewrite=OFF
-      - --sync-binlog=0
-    tmpfs:
-      - /var/lib/mysql
-    networks:
-      - rex_test
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_TEST_PASSWORD:-secret}"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
+    mysql_test:
+        image: mysql:8.4
+        container_name: rex_test_mysql_test
+        restart: unless-stopped
+        ports:
+            - '${FORWARD_DB_TEST_PORT:-33306}:3306'
+        environment:
+            MYSQL_DATABASE: ${DB_TEST_DATABASE:-rex_test_testing}
+            MYSQL_USER: ${DB_TEST_USERNAME:-rex_test}
+            MYSQL_PASSWORD: ${DB_TEST_PASSWORD:-secret}
+            MYSQL_ROOT_PASSWORD: ${DB_TEST_PASSWORD:-secret}
+            MYSQL_ALLOW_EMPTY_PASSWORD: 'no'
+        command:
+            - --skip-log-bin
+            - --innodb-flush-log-at-trx-commit=0
+            - --innodb-doublewrite=OFF
+            - --sync-binlog=0
+        tmpfs:
+            - /var/lib/mysql
+        networks:
+            - rex_test
+        healthcheck:
+            test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-p${DB_TEST_PASSWORD:-secret}']
+            interval: 5s
+            timeout: 5s
+            retries: 20
 
-  redis:
-    image: redis:7-alpine
-    container_name: rex_test_redis
-    restart: unless-stopped
-    ports:
-      - "${FORWARD_REDIS_PORT:-6379}:6379"
-    volumes:
-      - rex_test_redis:/data
-    networks:
-      - rex_test
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+    redis:
+        image: redis:7-alpine
+        container_name: rex_test_redis
+        restart: unless-stopped
+        ports:
+            - '${FORWARD_REDIS_PORT:-6379}:6379'
+        volumes:
+            - rex_test_redis:/data
+        networks:
+            - rex_test
+        healthcheck:
+            test: ['CMD', 'redis-cli', 'ping']
+            interval: 5s
+            timeout: 3s
+            retries: 10
 
 networks:
-  rex_test:
-    driver: bridge
+    rex_test:
+        driver: bridge
 
 volumes:
-  rex_test_mysql:
-  rex_test_redis:
+    rex_test_mysql:
+    rex_test_redis:

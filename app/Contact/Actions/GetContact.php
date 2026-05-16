@@ -14,4 +14,9 @@ class GetContact
     {
         return ContactData::fromModel($contact);
     }
+
+    public function asController(Contact $contact): ContactData
+    {
+        return $this->handle($contact);
+    }
 }

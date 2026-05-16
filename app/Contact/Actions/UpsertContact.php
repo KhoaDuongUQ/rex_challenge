@@ -25,4 +25,9 @@ class UpsertContact
 
         return ContactData::fromModel($contact->refresh());
     }
+
+    public function asController(UpsertContactData $data): ContactData
+    {
+        return $this->handle($data);
+    }
 }

@@ -35,4 +35,9 @@ class CallContact
             );
         });
     }
+
+    public function asController(Contact $contact): CallOutcomeData
+    {
+        return $this->handle($contact);
+    }
 }

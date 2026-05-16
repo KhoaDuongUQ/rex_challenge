@@ -1,6 +1,9 @@
 type ApiFetchOptions = Omit<RequestInit, 'body'> & { body?: unknown };
 
-export async function apiFetch<T = unknown>(url: string, options: ApiFetchOptions = {}): Promise<T> {
+export async function apiFetch<T = unknown>(
+    url: string,
+    options: ApiFetchOptions = {},
+): Promise<T> {
     const method = (options.method ?? 'GET').toUpperCase();
     const headers = new Headers(options.headers);
     headers.set('Accept', 'application/json');

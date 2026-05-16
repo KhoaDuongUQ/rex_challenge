@@ -88,7 +88,7 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 - Execute PHP in app context for debugging and testing code. Do not create models without user approval, prefer tests with factories instead. Prefer existing Artisan commands over custom tinker code.
 - Always use single quotes to prevent shell expansion: `php artisan tinker --execute 'Your::code();'`
-  - Double quotes for PHP strings inside: `php artisan tinker --execute 'User::where("active", true)->count();'`
+    - Double quotes for PHP strings inside: `php artisan tinker --execute 'User::where("active", true)->count();'`
 
 === php rules ===
 
@@ -174,24 +174,40 @@ The stack runs entirely in Docker Compose: `app` (php 8.4-fpm), `nginx`, `mysql`
 
 **Override of Boost rules:** every PHP / Composer / Artisan invocation must be prefixed with `docker compose exec app`. Bare `php artisan` on the host fails because `DB_HOST=mysql` and `REDIS_HOST=redis` only resolve inside the compose network.
 
-| Task | Command |
-| --- | --- |
-| Bring stack up | `docker compose up -d --build` |
-| Composer | `docker compose exec app composer <cmd>` |
-| Artisan | `docker compose exec app php artisan <cmd>` |
-| Tinker | `docker compose exec app php artisan tinker --execute '<code>'` |
-| TS type gen | `docker compose exec app php artisan typescript:transform` |
-| Tests | `docker compose exec app php artisan test --compact` |
-| Pint | `docker compose exec app vendor/bin/pint --dirty --format agent` |
-| Logs (Pail) | `docker compose exec app php artisan pail` |
-| MySQL (dev) | `docker compose exec mysql mysql -urex_test -psecret rex_test` |
-| MySQL (test) | `docker compose exec mysql_test mysql -urex_test -psecret rex_test_testing` |
-| Redis | `docker compose exec redis redis-cli` |
-| App shell | `docker compose exec app sh` |
+| Task              | Command                                                                     |
+| ----------------- | --------------------------------------------------------------------------- |
+| Bring stack up    | `docker compose up -d --build`                                              |
+| Composer          | `docker compose exec app composer <cmd>`                                    |
+| Artisan           | `docker compose exec app php artisan <cmd>`                                 |
+| Tinker            | `docker compose exec app php artisan tinker --execute '<code>'`             |
+| TS type gen       | `docker compose exec app php artisan typescript:transform`                  |
+| Tests             | `docker compose exec app php artisan test --compact`                        |
+| Lint+format (all) | `npm run lint` (from host) — Prettier+ESLint+Pint, auto-fixes in place      |
+| Lint+format (BE)  | `npm run lint:be` — Pint inside `app` container                             |
+| Lint+format (FE)  | `npm run lint:fe` — Prettier `--write` + ESLint on host                     |
+| Logs (Pail)       | `docker compose exec app php artisan pail`                                  |
+| MySQL (dev)       | `docker compose exec mysql mysql -urex_test -psecret rex_test`              |
+| MySQL (test)      | `docker compose exec mysql_test mysql -urex_test -psecret rex_test_testing` |
+| Redis             | `docker compose exec redis redis-cli`                                       |
+| App shell         | `docker compose exec app sh`                                                |
 
 Frontend (on host): `npm install`, `npm run dev`, `npm run build`. App is served at `http://localhost:${APP_PORT:-8080}`.
 
 Rebuild only after Dockerfile / `docker/**` changes: `docker compose up -d --build app`. Composer changes don't require a rebuild.
+
+## Linting & Formatting
+
+One command — `npm run lint` — formats and lints the whole stack. Both sides must be clean before any change is declared done. The lint scripts auto-fix in place (Prettier `--write` on the FE, Pint `--dirty` on the BE), so running `npm run lint` is destructive and expected to mutate files.
+
+- **`npm run lint`** — runs `lint:fe` then `lint:be`. Run from the host; assumes the docker stack is up so the BE half can `docker compose exec` into the `app` container.
+- **`npm run lint:fe`** — Prettier `--write` then ESLint over `resources/js/**/*.{ts,tsx}`. Config in [eslint.config.mjs](eslint.config.mjs) (flat, ESLint 9 + typescript-eslint + React + hooks + `eslint-config-prettier`). Prettier config in [.prettierrc.json](.prettierrc.json); ignore list in [.prettierignore](.prettierignore).
+- **`npm run lint:be`** — Pint `--dirty --format agent` inside the `app` container. Formats and lints PHP.
+- **`npm run format:fe`** / **`npm run format:check:fe`** — granular Prettier write / check, available if you need only the formatter step.
+- **`npm run typecheck`** — `tsc --noEmit`. Separate gate from lint; run it too before declaring an FE change done.
+
+Prettier owns FE formatting; ESLint owns FE code quality (the two are aligned via `eslint-config-prettier`, which mutes any ESLint rule that fights Prettier). On the BE, Pint does both jobs.
+
+This overrides the Boost guideline that says to run `vendor/bin/pint` directly — use `npm run lint:be` (or `npm run lint`) so the BE/FE workflow stays unified.
 
 ## Testing
 
@@ -215,14 +231,14 @@ Tests target the `mysql_test` service (database `rex_test_testing`), configured 
 
 **Runners (decide by call site):**
 
-| Runner | Used as | Invocation |
-| --- | --- | --- |
-| `AsController` | HTTP endpoint | `Route::post('/invoices', CreateInvoice::class)`. Override `asController()` only if the HTTP shape differs from `handle()`. |
-| `AsJob` | Queued job | `CreateInvoice::dispatch($data)`. Pass IDs or `Data` snapshots, never Eloquent models. |
-| `AsCommand` | Artisan command | Set `public string $commandSignature = '…';` and (if needed) `asCommand(Command $command)`. |
-| `AsListener` | Event listener | `Event::listen(SomeEvent::class, MyAction::class)`. Override `asListener()` only to reshape. |
-| `AsFake` | Test fakes | `MyAction::shouldRun()` / `::mock()` in tests. |
-| (default) | Direct call | `MyAction::run($data)`. |
+| Runner         | Used as         | Invocation                                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AsController` | HTTP endpoint   | `Route::post('/invoices', CreateInvoice::class)`. Always implement `asController()` — even as a passthrough to `$this->handle(...)` — to keep the HTTP boundary explicit and `handle()` as pure business logic. The `asController()` method is where you may convert HTTP shapes (status codes, headers, redirects) or accept request-only inputs; `handle()` is what jobs, commands, and tests call. |
+| `AsJob`        | Queued job      | `CreateInvoice::dispatch($data)`. Pass IDs or `Data` snapshots, never Eloquent models.                                                                                                                                                                                                                                                                                                                |
+| `AsCommand`    | Artisan command | Set `public string $commandSignature = '…';` and (if needed) `asCommand(Command $command)`.                                                                                                                                                                                                                                                                                                           |
+| `AsListener`   | Event listener  | `Event::listen(SomeEvent::class, MyAction::class)`. Override `asListener()` only to reshape.                                                                                                                                                                                                                                                                                                          |
+| `AsFake`       | Test fakes      | `MyAction::shouldRun()` / `::mock()` in tests.                                                                                                                                                                                                                                                                                                                                                        |
+| (default)      | Direct call     | `MyAction::run($data)`.                                                                                                                                                                                                                                                                                                                                                                               |
 
 **Tests are required for every Action.** No Action lands without at least:
 
@@ -244,7 +260,9 @@ Coverage is non-negotiable for Actions because they are the unit of business log
 
 ## Frontend — TypeScript & TanStack Query
 
-The frontend is **TypeScript** (strict mode). All new components are `.tsx`; helpers and hooks are `.ts`. No `.js`/`.jsx` files. Run `npm run typecheck` (or `npx tsc --noEmit`) before declaring an FE change done.
+The frontend is **TypeScript** (strict mode). All new components are `.tsx`; helpers and hooks are `.ts`. No `.js`/`.jsx` files. Run `npm run lint` (which fans out to `lint:fe` + `lint:be`) and `npm run typecheck` before declaring any change — FE or BE — done.
+
+FE tooling: Prettier owns formatting ([.prettierrc.json](.prettierrc.json) + [.prettierignore](.prettierignore)); ESLint owns code quality ([eslint.config.mjs](eslint.config.mjs) — flat, ESLint 9 + typescript-eslint + React + hooks + `eslint-config-prettier`). The generated `resources/js/types/generated.d.ts` is excluded from both. See the **Linting & Formatting** section above for the canonical command.
 
 Server state goes through `@tanstack/react-query`. One `QueryClient` lives in `resources/js/app.tsx`; the tree is wrapped in `QueryClientProvider`.
 

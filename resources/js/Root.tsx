@@ -16,9 +16,12 @@ export default function Root() {
                     {isError && <span className="text-rose-600">Error: {error.message}</span>}
                     {data && (
                         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-slate-800">
-                            <dt className="text-slate-500">message</dt><dd>{data.message}</dd>
-                            <dt className="text-slate-500">app</dt><dd>{data.app}</dd>
-                            <dt className="text-slate-500">time</dt><dd>{data.time}</dd>
+                            <dt className="text-slate-500">message</dt>
+                            <dd>{data.message}</dd>
+                            <dt className="text-slate-500">app</dt>
+                            <dd>{data.app}</dd>
+                            <dt className="text-slate-500">time</dt>
+                            <dd>{data.time}</dd>
                         </dl>
                     )}
                 </div>
