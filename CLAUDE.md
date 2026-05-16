@@ -257,6 +257,7 @@ Coverage is non-negotiable for Actions because they are the unit of business log
 - Any `Data` consumed by the frontend gets `#[Spatie\TypeScriptTransformer\Attributes\TypeScript]` so it lands in `generated.d.ts`.
 - Regenerate types after touching any `#[TypeScript]` class: `docker compose exec app php artisan typescript:transform`. Never hand-edit `resources/js/types/generated.d.ts`.
 - Transformer config lives in `app/Providers/TypeScriptTransformerServiceProvider.php`.
+- **Error messages should be as informative as possible to API consumers who may be third parties.** Any DTO with a `rules()` method must also define a `messages()` method that overrides Laravel's defaults where they're vague (e.g. `exists`, `regex`, domain rules like `phone:AU,NZ`). State the constraint and an example of valid input where it helps. Add tests asserting the message text for the ambiguous cases so the contract doesn't silently regress.
 
 ## Frontend — TypeScript & TanStack Query
 

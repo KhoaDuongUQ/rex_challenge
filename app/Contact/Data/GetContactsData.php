@@ -18,4 +18,12 @@ class GetContactsData extends Data
             'search' => ['nullable', 'string', 'max:255'],
         ];
     }
+
+    public static function messages(): array
+    {
+        return [
+            'search.string' => 'The search field must be a string.',
+            'search.max' => 'The search field must not exceed :max characters.',
+        ];
+    }
 }

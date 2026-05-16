@@ -104,4 +104,40 @@ class UpsertContactTest extends TestCase
                 'id', 'name', 'phone', 'email', 'createdAt', 'updatedAt',
             ]);
     }
+
+    public function test_unknown_id_returns_informative_message(): void
+    {
+        $this->postJson('/api/contacts', [
+            'id' => 999999,
+            'name' => 'Ada',
+        ])->assertStatus(422)
+            ->assertJsonPath(
+                'errors.id.0',
+                'No contact found with the provided id.',
+            );
+    }
+
+    public function test_invalid_phone_returns_informative_message(): void
+    {
+        $this->postJson('/api/contacts', [
+            'name' => 'Ada',
+            'phone' => '+12025550100',
+        ])->assertStatus(422)
+            ->assertJsonPath(
+                'errors.phone.0',
+                'The phone field must be a valid Australian (AU) or New Zealand (NZ) phone number in E.164 format (e.g. +61412345678).',
+            );
+    }
+
+    public function test_invalid_email_returns_informative_message(): void
+    {
+        $this->postJson('/api/contacts', [
+            'name' => 'Ada',
+            'email' => 'not-an-email',
+        ])->assertStatus(422)
+            ->assertJsonPath(
+                'errors.email.0',
+                'The email field must be a valid RFC-compliant email address (e.g. user@example.com).',
+            );
+    }
 }
